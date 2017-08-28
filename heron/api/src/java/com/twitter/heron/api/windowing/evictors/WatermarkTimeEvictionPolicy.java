@@ -20,7 +20,7 @@ import com.twitter.heron.api.windowing.Event;
  * watermark time and event lag into account.
  */
 public class WatermarkTimeEvictionPolicy<T> extends TimeEvictionPolicy<T> {
-  private final int lag;
+  private final long lag;
 
   /**
    * Constructs a WatermarkTimeEvictionPolicy that evicts events older
@@ -28,8 +28,8 @@ public class WatermarkTimeEvictionPolicy<T> extends TimeEvictionPolicy<T> {
    *
    * @param windowLength the window length in milliseconds
    */
-  public WatermarkTimeEvictionPolicy(int windowLength) {
-    this(windowLength, Integer.MAX_VALUE);
+  public WatermarkTimeEvictionPolicy(long windowLength) {
+    this(windowLength, Long.MAX_VALUE);
   }
 
   /**
@@ -41,7 +41,7 @@ public class WatermarkTimeEvictionPolicy<T> extends TimeEvictionPolicy<T> {
    * @param windowLength the window length in milliseconds
    * @param lag the max event lag in milliseconds
    */
-  public WatermarkTimeEvictionPolicy(int windowLength, int lag) {
+  public WatermarkTimeEvictionPolicy(long windowLength, long lag) {
     super(windowLength);
     this.lag = lag;
   }

@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import com.twitter.heron.api.Config;
@@ -50,7 +49,6 @@ import com.twitter.heron.api.windowing.triggers.WatermarkTimeTriggerPolicy;
 import com.twitter.heron.common.basics.TypeUtils;
 
 import static com.twitter.heron.api.bolt.BaseWindowedBolt.Count;
-import static com.twitter.heron.api.bolt.BaseWindowedBolt.Duration;
 
 /**
  * An {@link IWindowedBolt} wrapper that does the windowing of tuples.
@@ -71,7 +69,7 @@ public class WindowedBoltExecutor implements IRichBolt {
   private transient String lateTupleStream;
   private transient TriggerPolicy<Tuple, ?> triggerPolicy;
   private transient EvictionPolicy<Tuple, ?> evictionPolicy;
-  private transient Duration windowLengthDuration;
+  private transient Long windowLengthDurationMs;
   // package level for unit tests
   private transient WaterMarkEventGenerator<Tuple> waterMarkEventGenerator;
 
@@ -103,7 +101,7 @@ public class WindowedBoltExecutor implements IRichBolt {
     return maxPending;
   }
 
-  private void ensureDurationLessThanTimeout(int duration, int timeout) {
+  private void ensureDurationLessThanTimeout(long duration, long timeout) {
     if (duration > timeout) {
       throw new IllegalArgumentException(
           "Window duration (length + sliding interval) value " + duration + " is more than "
@@ -120,8 +118,8 @@ public class WindowedBoltExecutor implements IRichBolt {
   }
 
   @SuppressWarnings("HiddenField")
-  protected void validate(Map<String, Object> topoConf, Count windowLengthCount, Duration
-      windowLengthDuration, Count slidingIntervalCount, Duration slidingIntervalDuration) {
+  protected void validate(Map<String, Object> topoConf, Count windowLengthCount, Long
+      windowLengthDuration, Count slidingIntervalCount, Long slidingIntervalDuration) {
 
     int topologyTimeout = getTopologyTimeoutMillis(topoConf);
     int maxSpoutPending = getMaxSpoutPending(topoConf);
@@ -131,11 +129,11 @@ public class WindowedBoltExecutor implements IRichBolt {
 
     if (windowLengthDuration != null && slidingIntervalDuration != null) {
       ensureDurationLessThanTimeout(
-          windowLengthDuration.value + slidingIntervalDuration.value, topologyTimeout);
+          windowLengthDuration + slidingIntervalDuration, topologyTimeout);
     } else if (windowLengthDuration != null) {
-      ensureDurationLessThanTimeout(windowLengthDuration.value, topologyTimeout);
+      ensureDurationLessThanTimeout(windowLengthDuration, topologyTimeout);
     } else if (slidingIntervalDuration != null) {
-      ensureDurationLessThanTimeout(slidingIntervalDuration.value, topologyTimeout);
+      ensureDurationLessThanTimeout(slidingIntervalDuration, topologyTimeout);
     }
 
     if (windowLengthCount != null && slidingIntervalCount != null) {
@@ -156,23 +154,23 @@ public class WindowedBoltExecutor implements IRichBolt {
     WindowManager<Tuple> manager = new WindowManager<>(lifecycleListener, queue);
 
     Count windowLengthCount = null;
-    Duration slidingIntervalDuration = null;
+    Long slidingIntervalDurationMs = null;
     Count slidingIntervalCount = null;
     // window length
     if (topoConf.containsKey(WindowingConfigs.TOPOLOGY_BOLTS_WINDOW_LENGTH_COUNT)) {
       windowLengthCount = new Count(((Number) topoConf.get(WindowingConfigs
           .TOPOLOGY_BOLTS_WINDOW_LENGTH_COUNT)).intValue());
     } else if (topoConf.containsKey(WindowingConfigs.TOPOLOGY_BOLTS_WINDOW_LENGTH_DURATION_MS)) {
-      windowLengthDuration = new Duration(((Number) topoConf.get(WindowingConfigs
-          .TOPOLOGY_BOLTS_WINDOW_LENGTH_DURATION_MS)).intValue(), TimeUnit.MILLISECONDS);
+      windowLengthDurationMs = (Long) topoConf.get(WindowingConfigs
+          .TOPOLOGY_BOLTS_WINDOW_LENGTH_DURATION_MS);
     }
     // sliding interval
     if (topoConf.containsKey(WindowingConfigs.TOPOLOGY_BOLTS_SLIDING_INTERVAL_COUNT)) {
       slidingIntervalCount = new Count(((Number) topoConf.get(WindowingConfigs
           .TOPOLOGY_BOLTS_SLIDING_INTERVAL_COUNT)).intValue());
     } else if (topoConf.containsKey(WindowingConfigs.TOPOLOGY_BOLTS_SLIDING_INTERVAL_DURATION_MS)) {
-      slidingIntervalDuration = new Duration(((Number) topoConf.get(WindowingConfigs
-          .TOPOLOGY_BOLTS_SLIDING_INTERVAL_DURATION_MS)).intValue(), TimeUnit.MILLISECONDS);
+      slidingIntervalDurationMs = (Long) topoConf.get(WindowingConfigs
+          .TOPOLOGY_BOLTS_SLIDING_INTERVAL_DURATION_MS);
     } else {
       // default is a sliding window of count 1
       slidingIntervalCount = new Count(1);
@@ -211,10 +209,10 @@ public class WindowedBoltExecutor implements IRichBolt {
       }
     }
     // validate
-    validate(topoConf, windowLengthCount, windowLengthDuration, slidingIntervalCount,
-        slidingIntervalDuration);
-    evictionPolicy = getEvictionPolicy(windowLengthCount, windowLengthDuration);
-    triggerPolicy = getTriggerPolicy(slidingIntervalCount, slidingIntervalDuration, manager,
+    validate(topoConf, windowLengthCount, windowLengthDurationMs, slidingIntervalCount,
+        slidingIntervalDurationMs);
+    evictionPolicy = getEvictionPolicy(windowLengthCount, windowLengthDurationMs);
+    triggerPolicy = getTriggerPolicy(slidingIntervalCount, slidingIntervalDurationMs, manager,
         evictionPolicy);
     manager.setEvictionPolicy(evictionPolicy);
     manager.setTriggerPolicy(triggerPolicy);
@@ -246,8 +244,8 @@ public class WindowedBoltExecutor implements IRichBolt {
   }
 
   @SuppressWarnings("HiddenField")
-  private TriggerPolicy<Tuple, ?> getTriggerPolicy(Count slidingIntervalCount, Duration
-      slidingIntervalDuration, WindowManager<Tuple> manager, EvictionPolicy<Tuple, ?>
+  private TriggerPolicy<Tuple, ?> getTriggerPolicy(Count slidingIntervalCount, Long
+      slidingIntervalDurationMs, WindowManager<Tuple> manager, EvictionPolicy<Tuple, ?>
       evictionPolicy) {
     if (slidingIntervalCount != null) {
       if (isTupleTs()) {
@@ -258,17 +256,17 @@ public class WindowedBoltExecutor implements IRichBolt {
       }
     } else {
       if (isTupleTs()) {
-        return new WatermarkTimeTriggerPolicy<>(slidingIntervalDuration.value, manager,
+        return new WatermarkTimeTriggerPolicy<>(slidingIntervalDurationMs, manager,
             evictionPolicy, manager);
       } else {
-        return new TimeTriggerPolicy<>(slidingIntervalDuration.value, manager, evictionPolicy);
+        return new TimeTriggerPolicy<>(slidingIntervalDurationMs, manager, evictionPolicy);
       }
     }
   }
 
   @SuppressWarnings("HiddenField")
-  private EvictionPolicy<Tuple, ?> getEvictionPolicy(Count windowLengthCount, Duration
-      windowLengthDuration) {
+  private EvictionPolicy<Tuple, ?> getEvictionPolicy(Count windowLengthCount, Long
+      windowLengthDurationMs) {
     if (windowLengthCount != null) {
       if (isTupleTs()) {
         return new WatermarkCountEvictionPolicy<>(windowLengthCount.value);
@@ -277,9 +275,9 @@ public class WindowedBoltExecutor implements IRichBolt {
       }
     } else {
       if (isTupleTs()) {
-        return new WatermarkTimeEvictionPolicy<>(windowLengthDuration.value, maxLagMs);
+        return new WatermarkTimeEvictionPolicy<>(windowLengthDurationMs, maxLagMs);
       } else {
-        return new TimeEvictionPolicy<>(windowLengthDuration.value);
+        return new TimeEvictionPolicy<>(windowLengthDurationMs);
       }
     }
   }
@@ -381,8 +379,8 @@ public class WindowedBoltExecutor implements IRichBolt {
 
   private Long getWindowStartTs(Long endTs) {
     Long res = null;
-    if (endTs != null && windowLengthDuration != null) {
-      res = endTs - windowLengthDuration.value;
+    if (endTs != null && windowLengthDurationMs != null) {
+      res = endTs - windowLengthDurationMs;
     }
     return res;
   }

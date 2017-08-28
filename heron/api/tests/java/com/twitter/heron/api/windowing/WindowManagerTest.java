@@ -14,19 +14,18 @@
 
 package com.twitter.heron.api.windowing;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.twitter.heron.api.bolt.BaseWindowedBolt;
 import com.twitter.heron.api.windowing.evictors.CountEvictionPolicy;
 import com.twitter.heron.api.windowing.evictors.TimeEvictionPolicy;
 import com.twitter.heron.api.windowing.evictors.WatermarkCountEvictionPolicy;
@@ -145,8 +144,8 @@ public class WindowManagerTest {
     int threshold = WindowManager.EXPIRE_EVENTS_THRESHOLD;
     int windowLength = 5;
     windowManager.setEvictionPolicy(new CountEvictionPolicy<Integer>(5));
-    TriggerPolicy<Integer, ?> triggerPolicy = new TimeTriggerPolicy<Integer>(new BaseWindowedBolt
-        .Duration(1, TimeUnit.HOURS).value, windowManager);
+    TriggerPolicy<Integer, ?> triggerPolicy = new TimeTriggerPolicy<Integer>(Duration.ofHours(1)
+        .toMillis(), windowManager);
     triggerPolicy.start();
     windowManager.setTriggerPolicy(triggerPolicy);
     for (int i : seq(1, 5)) {
@@ -218,15 +217,15 @@ public class WindowManagerTest {
 
   @Test
   public void testTimeBasedWindow() throws Exception {
-    EvictionPolicy<Integer, ?> evictionPolicy = new TimeEvictionPolicy<Integer>(new
-        BaseWindowedBolt.Duration(1, TimeUnit.SECONDS).value);
+    EvictionPolicy<Integer, ?> evictionPolicy = new TimeEvictionPolicy<Integer>(Duration
+        .ofSeconds(1).toMillis());
     windowManager.setEvictionPolicy(evictionPolicy);
         /*
          * Don't wait for Timetrigger to fire since this could lead to timing issues in unit tests.
          * Set it to a large value and trigger manually.
           */
-    TriggerPolicy<Integer, ?> triggerPolicy = new TimeTriggerPolicy<Integer>(new BaseWindowedBolt
-        .Duration(1, TimeUnit.DAYS).value, windowManager, evictionPolicy);
+    TriggerPolicy<Integer, ?> triggerPolicy = new TimeTriggerPolicy<Integer>(Duration.ofDays(1)
+        .toMillis(), windowManager, evictionPolicy);
     triggerPolicy.start();
     windowManager.setTriggerPolicy(triggerPolicy);
     long now = System.currentTimeMillis();
@@ -286,15 +285,15 @@ public class WindowManagerTest {
 
   @Test
   public void testTimeBasedWindowExpiry() throws Exception {
-    EvictionPolicy<Integer, ?> evictionPolicy = new TimeEvictionPolicy<Integer>(new
-        BaseWindowedBolt.Duration(100, TimeUnit.MILLISECONDS).value);
+    EvictionPolicy<Integer, ?> evictionPolicy =
+        new TimeEvictionPolicy<Integer>(Duration.ofMillis(100).toMillis());
     windowManager.setEvictionPolicy(evictionPolicy);
         /*
          * Don't wait for Timetrigger to fire since this could lead to timing issues in unit tests.
          * Set it to a large value and trigger manually.
           */
-    TriggerPolicy<Integer, ?> triggerPolicy = new TimeTriggerPolicy<Integer>(new BaseWindowedBolt
-        .Duration(1, TimeUnit.DAYS).value, windowManager);
+    TriggerPolicy<Integer, ?> triggerPolicy = new TimeTriggerPolicy<Integer>(Duration.ofDays(1)
+        .toMillis(), windowManager);
     triggerPolicy.start();
     windowManager.setTriggerPolicy(triggerPolicy);
     long now = System.currentTimeMillis();

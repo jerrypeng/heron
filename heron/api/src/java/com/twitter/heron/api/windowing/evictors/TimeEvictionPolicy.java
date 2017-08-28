@@ -25,7 +25,7 @@ import com.twitter.heron.api.windowing.EvictionPolicy;
 public class TimeEvictionPolicy<T> implements EvictionPolicy<T, EvictionContext> {
   private static final Logger LOG = Logger.getLogger(TimeEvictionPolicy.class.getName());
 
-  private final int windowLength;
+  private final long windowLength;
   protected volatile EvictionContext evictionContext;
   private long delta;
 
@@ -35,7 +35,7 @@ public class TimeEvictionPolicy<T> implements EvictionPolicy<T, EvictionContext>
    *
    * @param windowLength the duration in milliseconds
    */
-  public TimeEvictionPolicy(int windowLength) {
+  public TimeEvictionPolicy(long windowLength) {
     this.windowLength = windowLength;
   }
 

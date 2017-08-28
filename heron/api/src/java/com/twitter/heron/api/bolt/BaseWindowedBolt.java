@@ -14,8 +14,8 @@
 package com.twitter.heron.api.bolt;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import com.twitter.heron.api.topology.OutputFieldsDeclarer;
@@ -78,93 +78,6 @@ public abstract class BaseWindowedBolt implements IWindowedBolt {
     }
   }
 
-  /**
-   * Holds a Time duration for time based windows and sliding intervals.
-   */
-  public static class Duration implements Serializable {
-    private static final long serialVersionUID = 6894484955213159136L;
-    public final int value;
-
-    public Duration(int value, TimeUnit timeUnit) {
-      this.value = (int) timeUnit.toMillis(value);
-    }
-
-    /**
-     * Returns a {@link Duration} corresponding to the the given value in milli seconds.
-     *
-     * @param milliseconds the duration in milliseconds
-     * @return the Duration
-     */
-    public static Duration of(int milliseconds) {
-      return new Duration(milliseconds, TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * Returns a {@link Duration} corresponding to the the given value in days.
-     *
-     * @param days the number of days
-     * @return the Duration
-     */
-    public static Duration days(int days) {
-      return new Duration(days, TimeUnit.DAYS);
-    }
-
-    /**
-     * Returns a {@link Duration} corresponding to the the given value in hours.
-     *
-     * @param hours the number of hours
-     * @return the Duration
-     */
-    public static Duration hours(int hours) {
-      return new Duration(hours, TimeUnit.HOURS);
-    }
-
-    /**
-     * Returns a {@link Duration} corresponding to the the given value in minutes.
-     *
-     * @param minutes the number of minutes
-     * @return the Duration
-     */
-    public static Duration minutes(int minutes) {
-      return new Duration(minutes, TimeUnit.MINUTES);
-    }
-
-    /**
-     * Returns a {@link Duration} corresponding to the the given value in seconds.
-     *
-     * @param seconds the number of seconds
-     * @return the Duration
-     */
-    public static Duration seconds(int seconds) {
-      return new Duration(seconds, TimeUnit.SECONDS);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-
-      Duration duration = (Duration) o;
-
-      return value == duration.value;
-
-    }
-
-    @Override
-    public int hashCode() {
-      return value;
-    }
-
-    @Override
-    public String toString() {
-      return "Duration{" + "value=" + value + '}';
-    }
-  }
-
   protected BaseWindowedBolt() {
     windowConfiguration = new WindowingConfigs();
   }
@@ -178,12 +91,12 @@ public abstract class BaseWindowedBolt implements IWindowedBolt {
   }
 
   private BaseWindowedBolt withWindowLength(Duration duration) {
-    if (duration.value <= 0) {
+    if (duration.isNegative()) {
       throw new IllegalArgumentException("Window length must be positive [" + duration + "]");
     }
 
     windowConfiguration.put(WindowingConfigs.TOPOLOGY_BOLTS_WINDOW_LENGTH_DURATION_MS,
-        duration.value);
+        duration.toMillis());
     return this;
   }
 
@@ -196,11 +109,11 @@ public abstract class BaseWindowedBolt implements IWindowedBolt {
   }
 
   private BaseWindowedBolt withSlidingInterval(Duration duration) {
-    if (duration.value <= 0) {
+    if (duration.isNegative()) {
       throw new IllegalArgumentException("Sliding interval must be positive [" + duration + "]");
     }
     windowConfiguration.put(WindowingConfigs.TOPOLOGY_BOLTS_SLIDING_INTERVAL_DURATION_MS,
-        duration.value);
+        duration.toMillis());
     return this;
   }
 
@@ -335,7 +248,7 @@ public abstract class BaseWindowedBolt implements IWindowedBolt {
    */
   public BaseWindowedBolt withLag(Duration duration) {
     windowConfiguration.put(WindowingConfigs.TOPOLOGY_BOLTS_TUPLE_TIMESTAMP_MAX_LAG_MS,
-        duration.value);
+        duration.toMillis());
     return this;
   }
 
@@ -347,7 +260,7 @@ public abstract class BaseWindowedBolt implements IWindowedBolt {
    */
   public BaseWindowedBolt withWatermarkInterval(Duration interval) {
     windowConfiguration.put(WindowingConfigs.TOPOLOGY_BOLTS_WATERMARK_EVENT_INTERVAL_MS,
-        interval.value);
+        interval.toMillis());
     return this;
   }
 
