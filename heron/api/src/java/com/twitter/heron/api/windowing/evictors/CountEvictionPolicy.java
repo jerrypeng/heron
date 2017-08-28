@@ -25,7 +25,7 @@ import com.twitter.heron.api.windowing.EvictionPolicy;
  *
  * @param <T> the type of event tracked by this policy.
  */
-public class CountEvictionPolicy<T> implements EvictionPolicy<T, Long> {
+public class CountEvictionPolicy<T> implements EvictionPolicy<T> {
   protected final int threshold;
   protected final AtomicLong currentCount;
   private EvictionContext context;

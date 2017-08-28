@@ -51,8 +51,8 @@ public class WindowManager<T> implements TriggerHandler {
   public static final int EXPIRE_EVENTS_THRESHOLD = 100;
 
   protected final Collection<Event<T>> queue;
-  protected EvictionPolicy<T, ?> evictionPolicy;
-  protected TriggerPolicy<T, ?> triggerPolicy;
+  protected EvictionPolicy<T> evictionPolicy;
+  protected TriggerPolicy<T> triggerPolicy;
   protected final WindowLifecycleListener<T> windowLifecycleListener;
   private final List<T> expiredEvents;
   private final Set<Event<T>> prevWindowEvents;
@@ -86,11 +86,11 @@ public class WindowManager<T> implements TriggerHandler {
     this(lifecycleListener, new ConcurrentLinkedQueue<>());
   }
 
-  public void setEvictionPolicy(EvictionPolicy<T, ?> evictionPolicy) {
+  public void setEvictionPolicy(EvictionPolicy<T> evictionPolicy) {
     this.evictionPolicy = evictionPolicy;
   }
 
-  public void setTriggerPolicy(TriggerPolicy<T, ?> triggerPolicy) {
+  public void setTriggerPolicy(TriggerPolicy<T> triggerPolicy) {
     this.triggerPolicy = triggerPolicy;
   }
 

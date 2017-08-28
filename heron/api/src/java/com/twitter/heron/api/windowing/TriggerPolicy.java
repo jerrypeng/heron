@@ -19,7 +19,7 @@ package com.twitter.heron.api.windowing;
  *
  * @param <T> the type of the event that is tracked
  */
-public interface TriggerPolicy<T, S> {
+public interface TriggerPolicy<T> {
   /**
    * Tracks the event and could use this to invoke the trigger.
    *

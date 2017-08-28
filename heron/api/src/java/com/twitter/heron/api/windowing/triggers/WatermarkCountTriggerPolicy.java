@@ -28,15 +28,15 @@ import com.twitter.heron.api.windowing.WindowManager;
  *
  * @param <T> the type of event tracked by this policy.
  */
-public class WatermarkCountTriggerPolicy<T> implements TriggerPolicy<T, Long> {
+public class WatermarkCountTriggerPolicy<T> implements TriggerPolicy<T> {
   private final int count;
   private final TriggerHandler handler;
-  private final EvictionPolicy<T, ?> evictionPolicy;
+  private final EvictionPolicy<T> evictionPolicy;
   private final WindowManager<T> windowManager;
   private volatile long lastProcessedTs;
   private boolean started;
 
-  public WatermarkCountTriggerPolicy(int count, TriggerHandler handler, EvictionPolicy<T, ?>
+  public WatermarkCountTriggerPolicy(int count, TriggerHandler handler, EvictionPolicy<T>
       evictionPolicy, WindowManager<T> windowManager) {
     this.count = count;
     this.handler = handler;

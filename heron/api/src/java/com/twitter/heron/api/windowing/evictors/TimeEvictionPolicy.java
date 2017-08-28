@@ -22,7 +22,7 @@ import com.twitter.heron.api.windowing.EvictionPolicy;
 /**
  * Eviction policy that evicts events based on time duration.
  */
-public class TimeEvictionPolicy<T> implements EvictionPolicy<T, EvictionContext> {
+public class TimeEvictionPolicy<T> implements EvictionPolicy<T> {
   private static final Logger LOG = Logger.getLogger(TimeEvictionPolicy.class.getName());
 
   private final long windowLength;

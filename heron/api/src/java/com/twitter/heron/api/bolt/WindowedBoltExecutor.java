@@ -67,8 +67,8 @@ public class WindowedBoltExecutor implements IRichBolt {
   private transient int maxLagMs;
   private TimestampExtractor timestampExtractor;
   private transient String lateTupleStream;
-  private transient TriggerPolicy<Tuple, ?> triggerPolicy;
-  private transient EvictionPolicy<Tuple, ?> evictionPolicy;
+  private transient TriggerPolicy<Tuple> triggerPolicy;
+  private transient EvictionPolicy<Tuple> evictionPolicy;
   private transient Long windowLengthDurationMs;
   // package level for unit tests
   private transient WaterMarkEventGenerator<Tuple> waterMarkEventGenerator;
@@ -244,8 +244,8 @@ public class WindowedBoltExecutor implements IRichBolt {
   }
 
   @SuppressWarnings("HiddenField")
-  private TriggerPolicy<Tuple, ?> getTriggerPolicy(Count slidingIntervalCount, Long
-      slidingIntervalDurationMs, WindowManager<Tuple> manager, EvictionPolicy<Tuple, ?>
+  private TriggerPolicy<Tuple> getTriggerPolicy(Count slidingIntervalCount, Long
+      slidingIntervalDurationMs, WindowManager<Tuple> manager, EvictionPolicy<Tuple>
       evictionPolicy) {
     if (slidingIntervalCount != null) {
       if (isTupleTs()) {
@@ -265,7 +265,7 @@ public class WindowedBoltExecutor implements IRichBolt {
   }
 
   @SuppressWarnings("HiddenField")
-  private EvictionPolicy<Tuple, ?> getEvictionPolicy(Count windowLengthCount, Long
+  private EvictionPolicy<Tuple> getEvictionPolicy(Count windowLengthCount, Long
       windowLengthDurationMs) {
     if (windowLengthCount != null) {
       if (isTupleTs()) {

@@ -20,7 +20,7 @@ package com.twitter.heron.api.windowing;
  *
  * @param <T> the type of event that is tracked.
  */
-public interface EvictionPolicy<T, S> {
+public interface EvictionPolicy<T> {
   /**
    * The action to be taken when {@link EvictionPolicy#evict(Event)} is invoked.
    */

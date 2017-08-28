@@ -14,9 +14,25 @@
 package com.twitter.heron.api.windowing;
 
 public class DefaultEvictionContext implements EvictionContext {
+
+  /**
+   * Current timestamp
+   */
   private final Long referenceTime;
+
+  /**
+   * Current event count in window
+   */
   private final Long currentCount;
+
+  /**
+   * User set sliding window count
+   */
   private final Long slidingCount;
+
+  /**
+   * User set sliding window interval
+   */
   private final Long slidingInterval;
 
   public DefaultEvictionContext(Long referenceTime) {

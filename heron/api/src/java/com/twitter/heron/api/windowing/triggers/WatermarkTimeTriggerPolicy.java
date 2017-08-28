@@ -26,17 +26,17 @@ import com.twitter.heron.api.windowing.WindowManager;
  * Handles watermark events and triggers {@link TriggerHandler#onTrigger()} for each window
  * interval that has events to be processed up to the watermark ts.
  */
-public class WatermarkTimeTriggerPolicy<T> implements TriggerPolicy<T, Long> {
+public class WatermarkTimeTriggerPolicy<T> implements TriggerPolicy<T> {
   private static final Logger LOG = Logger.getLogger(WatermarkTimeTriggerPolicy.class.getName());
   private final long slidingIntervalMs;
   private final TriggerHandler handler;
-  private final EvictionPolicy<T, ?> evictionPolicy;
+  private final EvictionPolicy<T> evictionPolicy;
   private final WindowManager<T> windowManager;
   private volatile long nextWindowEndTs;
   private boolean started;
 
   public WatermarkTimeTriggerPolicy(long slidingIntervalMs, TriggerHandler handler,
-                                    EvictionPolicy<T, ?> evictionPolicy, WindowManager<T>
+                                    EvictionPolicy<T> evictionPolicy, WindowManager<T>
                                         windowManager) {
     this.slidingIntervalMs = slidingIntervalMs;
     this.handler = handler;

@@ -30,20 +30,20 @@ import com.twitter.heron.api.windowing.TriggerPolicy;
 /**
  * Invokes {@link TriggerHandler#onTrigger()} after the duration.
  */
-public class TimeTriggerPolicy<T> implements TriggerPolicy<T, Void> {
+public class TimeTriggerPolicy<T> implements TriggerPolicy<T> {
   private static final Logger LOG = Logger.getLogger(TimeTriggerPolicy.class.getName());
 
   private long duration;
   private final TriggerHandler handler;
   private final ScheduledExecutorService executor;
-  private final EvictionPolicy<T, ?> evictionPolicy;
+  private final EvictionPolicy<T> evictionPolicy;
   private ScheduledFuture<?> executorFuture;
 
   public TimeTriggerPolicy(long millis, TriggerHandler handler) {
     this(millis, handler, null);
   }
 
-  public TimeTriggerPolicy(long millis, TriggerHandler handler, EvictionPolicy<T, ?>
+  public TimeTriggerPolicy(long millis, TriggerHandler handler, EvictionPolicy<T>
       evictionPolicy) {
     this.duration = millis;
     this.handler = handler;
