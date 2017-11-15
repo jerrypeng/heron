@@ -111,24 +111,6 @@ public interface Streamlet<R> {
   List<Streamlet<R>> clone(int numClones);
 
   /**
-   * Return a new Streamlet by inner joining 'this streamlet with ‘other’ streamlet.
-   * The join is done over elements accumulated over a time window defined by windowCfg.
-   * The elements are compared using the thisKeyExtractor for this streamlet with the
-   * otherKeyExtractor for the other streamlet. On each matching pair, the joinFunction is applied.
-   * @param other The Streamlet that we are joining with.
-   * @param thisKeyExtractor The function applied to a tuple of this streamlet to get the key
-   * @param otherKeyExtractor The function applied to a tuple of the other streamlet to get the key
-   * @param windowCfg This is a specification of what kind of windowing strategy you like to
-   * have. Typical windowing strategies are sliding windows and tumbling windows
-   * @param joinFunction The join function that needs to be applied
-   */
-  <K, S, T> Streamlet<KeyValue<KeyedWindow<K>, T>>
-        join(Streamlet<S> other, SerializableFunction<R, K> thisKeyExtractor,
-             SerializableFunction<S, K> otherKeyExtractor, WindowConfig windowCfg,
-             SerializableBiFunction<R, S, ? extends T> joinFunction);
-
-
-  /**
    * Return a new KVStreamlet by joining 'this streamlet with ‘other’ streamlet. The type of joining
    * is declared by the joinType parameter.
    * The join is done over elements accumulated over a time window defined by windowCfg.
@@ -136,17 +118,9 @@ public interface Streamlet<R> {
    * otherKeyExtractor for the other streamlet. On each matching pair, the joinFunction is applied.
    * Types of joins {@link JoinType}
    * @param other The Streamlet that we are joining with.
-   * @param thisKeyExtractor The function applied to a tuple of this streamlet to get the key
-   * @param otherKeyExtractor The function applied to a tuple of the other streamlet to get the key
-   * @param windowCfg This is a specification of what kind of windowing strategy you like to
-   * have. Typical windowing strategies are sliding windows and tumbling windows
-   * @param joinType Type of Join. Options {@link JoinType}
-   * @param joinFunction The join function that needs to be applied
    */
-  <K, S, T> Streamlet<KeyValue<KeyedWindow<K>, T>>
-        join(Streamlet<S> other, SerializableFunction<R, K> thisKeyExtractor,
-             SerializableFunction<S, K> otherKeyExtractor, WindowConfig windowCfg,
-             JoinType joinType, SerializableBiFunction<R, S, ? extends T> joinFunction);
+
+  <S> JoinStreamlet<R, S> join(Streamlet<S> other);
 
   /**
    * Return a new Streamlet accumulating tuples of this streamlet over a Window defined by
@@ -158,9 +132,11 @@ public interface Streamlet<R> {
    * Typical windowing strategies are sliding windows and tumbling windows
    * @param reduceFn The reduce function that you want to apply to all the values of a key.
    */
-  <K, V> Streamlet<KeyValue<KeyedWindow<K>, V>> reduceByKeyAndWindow(
-      SerializableFunction<R, K> keyExtractor, SerializableFunction<R, V> valueExtractor,
-      WindowConfig windowCfg, SerializableBinaryOperator<V> reduceFn);
+//  <K, V> Streamlet<KeyValue<KeyedWindow<K>, V>> reduceByKeyAndWindow(
+//      SerializableFunction<R, K> keyExtractor, SerializableFunction<R, V> valueExtractor,
+//      WindowConfig<R> windowCfg, SerializableBinaryOperator<V> reduceFn);
+
+  <T> ReduceStreamlet<R, T> reduce();
 
   /**
    * Return a new Streamlet accumulating tuples of this streamlet over a Window defined by
@@ -175,9 +151,10 @@ public interface Streamlet<R> {
    * @param reduceFn The reduce function takes two parameters: a partial result of the reduction
    * and the next element of the stream. It returns a new partial result.
    */
-  <K, T> Streamlet<KeyValue<KeyedWindow<K>, T>> reduceByKeyAndWindow(
-      SerializableFunction<R, K> keyExtractor, WindowConfig windowCfg,
-      T identity, SerializableBiFunction<T, R, ? extends T> reduceFn);
+//  <K, T> Streamlet<KeyValue<KeyedWindow<K>, T>> reduceByKeyAndWindow(
+//      SerializableFunction<R, K> keyExtractor, WindowConfig windowCfg,
+//      T identity, SerializableBiFunction<T, R, ? extends T> reduceFn);
+
 
   /**
    * Returns a new Streamlet thats the union of this and the ‘other’ streamlet. Essentially

@@ -88,7 +88,7 @@ public class StreamletImplTest {
   public void testFlatMapStreamlet() throws Exception {
     Streamlet<Double> baseStreamlet = StreamletImpl.createSupplierStreamlet(() -> Math.random());
     Streamlet<Double> streamlet = baseStreamlet.setNumPartitions(20)
-                                               .flatMap((num) -> Arrays.asList(num * 10));
+        .flatMap((num) -> Arrays.asList(num * 10));
     assertTrue(streamlet instanceof FlatMapStreamlet);
     FlatMapStreamlet<Double, Double> mStreamlet = (FlatMapStreamlet<Double, Double>) streamlet;
     assertEquals(20, mStreamlet.getNumPartitions());
@@ -185,8 +185,8 @@ public class StreamletImplTest {
   public void testSimpleBuild() throws Exception {
     Streamlet<String> baseStreamlet = StreamletImpl.createSupplierStreamlet(() -> "sa re ga ma");
     baseStreamlet.flatMap(x -> Arrays.asList(x.split(" ")))
-                 .reduceByKeyAndWindow(x -> x, x -> 1, WindowConfig.TumblingCountWindow(10),
-                     (x, y) -> x + y);
+        .reduceByKeyAndWindow(x -> x, x -> 1, WindowConfig.TumblingCountWindow(10),
+            (x, y) -> x + y);
     SupplierStreamlet<String> supplierStreamlet = (SupplierStreamlet<String>) baseStreamlet;
     assertFalse(supplierStreamlet.isBuilt());
     TopologyBuilder builder = new TopologyBuilder();

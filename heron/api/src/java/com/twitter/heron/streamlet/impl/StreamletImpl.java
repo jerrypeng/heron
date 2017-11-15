@@ -21,11 +21,10 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import com.twitter.heron.api.topology.TopologyBuilder;
+import com.twitter.heron.streamlet.JoinStreamlet;
 import com.twitter.heron.streamlet.JoinType;
-import com.twitter.heron.streamlet.KeyValue;
-import com.twitter.heron.streamlet.KeyedWindow;
+import com.twitter.heron.streamlet.ReduceStreamlet;
 import com.twitter.heron.streamlet.SerializableBiFunction;
-import com.twitter.heron.streamlet.SerializableBinaryOperator;
 import com.twitter.heron.streamlet.SerializableConsumer;
 import com.twitter.heron.streamlet.SerializableFunction;
 import com.twitter.heron.streamlet.SerializablePredicate;
@@ -34,15 +33,11 @@ import com.twitter.heron.streamlet.SerializableTransformer;
 import com.twitter.heron.streamlet.Sink;
 import com.twitter.heron.streamlet.Source;
 import com.twitter.heron.streamlet.Streamlet;
-import com.twitter.heron.streamlet.WindowConfig;
 import com.twitter.heron.streamlet.impl.streamlets.ConsumerStreamlet;
 import com.twitter.heron.streamlet.impl.streamlets.FilterStreamlet;
 import com.twitter.heron.streamlet.impl.streamlets.FlatMapStreamlet;
-import com.twitter.heron.streamlet.impl.streamlets.GeneralReduceByKeyAndWindowStreamlet;
-import com.twitter.heron.streamlet.impl.streamlets.JoinStreamlet;
 import com.twitter.heron.streamlet.impl.streamlets.LogStreamlet;
 import com.twitter.heron.streamlet.impl.streamlets.MapStreamlet;
-import com.twitter.heron.streamlet.impl.streamlets.ReduceByKeyAndWindowStreamlet;
 import com.twitter.heron.streamlet.impl.streamlets.RemapStreamlet;
 import com.twitter.heron.streamlet.impl.streamlets.SinkStreamlet;
 import com.twitter.heron.streamlet.impl.streamlets.SourceStreamlet;
@@ -279,26 +274,6 @@ public abstract class StreamletImpl<R> implements Streamlet<R> {
     return retval;
   }
 
-  /**
-   * Return a new Streamlet by inner joining 'this streamlet with ‘other’ streamlet.
-   * The join is done over elements accumulated over a time window defined by windowCfg.
-   * The elements are compared using the thisKeyExtractor for this streamlet with the
-   * otherKeyExtractor for the other streamlet. On each matching pair, the joinFunction is applied.
-   * @param other The Streamlet that we are joining with.
-   * @param thisKeyExtractor The function applied to a tuple of this streamlet to get the key
-   * @param otherKeyExtractor The function applied to a tuple of the other streamlet to get the key
-   * @param windowCfg This is a specification of what kind of windowing strategy you like to
-   * have. Typical windowing strategies are sliding windows and tumbling windows
-   * @param joinFunction The join function that needs to be applied
-   */
-  @Override
-  public <K, S, T> Streamlet<KeyValue<KeyedWindow<K>, T>>
-        join(Streamlet<S> other, SerializableFunction<R, K> thisKeyExtractor,
-             SerializableFunction<S, K> otherKeyExtractor, WindowConfig windowCfg,
-             SerializableBiFunction<R, S, ? extends T> joinFunction) {
-    return join(other, thisKeyExtractor, otherKeyExtractor,
-        windowCfg, JoinType.INNER, joinFunction);
-  }
 
   /**
    * Return a new KVStreamlet by joining 'this streamlet with ‘other’ streamlet. The type of joining
@@ -308,47 +283,48 @@ public abstract class StreamletImpl<R> implements Streamlet<R> {
    * otherKeyExtractor for the other streamlet. On each matching pair, the joinFunction is applied.
    * Types of joins {@link JoinType}
    * @param other The Streamlet that we are joining with.
-   * @param thisKeyExtractor The function applied to a tuple of this streamlet to get the key
-   * @param otherKeyExtractor The function applied to a tuple of the other streamlet to get the key
-   * @param windowCfg This is a specification of what kind of windowing strategy you like to
-   * have. Typical windowing strategies are sliding windows and tumbling windows
-   * @param joinType Type of Join. Options {@link JoinType}
-   * @param joinFunction The join function that needs to be applied
    */
-  @Override
-  public <K, S, T> Streamlet<KeyValue<KeyedWindow<K>, T>>
-        join(Streamlet<S> other, SerializableFunction<R, K> thisKeyExtractor,
-             SerializableFunction<S, K> otherKeyExtractor, WindowConfig windowCfg,
-             JoinType joinType, SerializableBiFunction<R, S, ? extends T> joinFunction) {
 
+  @Override
+  public  <S> JoinStreamlet<R, S> join(Streamlet<S> other) {
     StreamletImpl<S> joinee = (StreamletImpl<S>) other;
-    JoinStreamlet<K, R, S, T> retval = JoinStreamlet.createJoinStreamlet(
-        this, joinee, thisKeyExtractor, otherKeyExtractor, windowCfg, joinType, joinFunction);
-    addChild(retval);
-    joinee.addChild(retval);
-    return retval;
+    return new JoinStreamletImpl<> (this, joinee);
   }
+//  @Override
+//  public <K, S, T> Streamlet<KeyValue<KeyedWindow<K>, T>>
+//        join(Streamlet<S> other, SerializableFunction<R, K> thisKeyExtractor,
+//             SerializableFunction<S, K> otherKeyExtractor, WindowConfig<KeyValue<R, S>> windowCfg,
+//             JoinType joinType, SerializableBiFunction<R, S, ? extends T> joinFunction) {
+//
+//    StreamletImpl<S> joinee = (StreamletImpl<S>) other;
+//    JoinStreamlet<K, R, S, T> retval = JoinStreamlet.createJoinStreamlet(
+//        this, joinee, thisKeyExtractor, otherKeyExtractor, windowCfg, joinType, joinFunction);
+//    addChild(retval);
+//    joinee.addChild(retval);
+//    return retval;
+//  }
 
-  /**
-   * Return a new Streamlet accumulating tuples of this streamlet over a Window defined by
-   * windowCfg and applying reduceFn on those tuples.
-   * @param keyExtractor The function applied to a tuple of this streamlet to get the key
-   * @param valueExtractor The function applied to a tuple of this streamlet to extract the value
-   * to be reduced on
-   * @param windowCfg This is a specification of what kind of windowing strategy you like to have.
-   * Typical windowing strategies are sliding windows and tumbling windows
-   * @param reduceFn The reduce function that you want to apply to all the values of a key.
-   */
+//  /**
+//   * Return a new Streamlet accumulating tuples of this streamlet over a Window defined by
+//   * windowCfg and applying reduceFn on those tuples.
+//   * @param keyExtractor The function applied to a tuple of this streamlet to get the key
+//   * @param valueExtractor The function applied to a tuple of this streamlet to extract the value
+//   * to be reduced on
+//   * @param windowCfg This is a specification of what kind of windowing strategy you like to have.
+// * Typical windowing strategies are sliding windows and tumbling windows
+//   * @param reduceFn The reduce function that you want to apply to all the values of a key.
+//   */
   @Override
-  public <K, V> Streamlet<KeyValue<KeyedWindow<K>, V>> reduceByKeyAndWindow(
-      SerializableFunction<R, K> keyExtractor, SerializableFunction<R, V> valueExtractor,
-      WindowConfig windowCfg, SerializableBinaryOperator<V> reduceFn) {
-    ReduceByKeyAndWindowStreamlet<K, V, R> retval =
-        new ReduceByKeyAndWindowStreamlet<>(this, keyExtractor, valueExtractor,
-            windowCfg, reduceFn);
-    addChild(retval);
-    return retval;
-  }
+//  public <K, V> Streamlet<KeyValue<KeyedWindow<K>, V>> reduceByKeyAndWindow(
+//      SerializableFunction<R, K> keyExtractor, SerializableFunction<R, V> valueExtractor,
+//      WindowConfig<R> windowCfg, SerializableBinaryOperator<V> reduceFn) {
+//    ReduceByKeyAndWindowStreamlet<K, V, R> retval =
+//        new ReduceByKeyAndWindowStreamlet<>(this, keyExtractor, valueExtractor,
+//            windowCfg, reduceFn);
+//    addChild(retval);
+//    return retval;
+//  }
+
 
   /**
    * Return a new Streamlet accumulating tuples of this streamlet over a Window defined by
@@ -363,16 +339,21 @@ public abstract class StreamletImpl<R> implements Streamlet<R> {
    * @param reduceFn The reduce function takes two parameters: a partial result of the reduction
    * and the next element of the stream. It returns a new partial result.
    */
-  @Override
-  public <K, T> Streamlet<KeyValue<KeyedWindow<K>, T>> reduceByKeyAndWindow(
-      SerializableFunction<R, K> keyExtractor, WindowConfig windowCfg,
-      T identity, SerializableBiFunction<T, R, ? extends T> reduceFn) {
-    GeneralReduceByKeyAndWindowStreamlet<K, R, T> retval =
-        new GeneralReduceByKeyAndWindowStreamlet<>(this, keyExtractor, windowCfg,
-            identity, reduceFn);
-    addChild(retval);
-    return retval;
+//  @Override
+//  public <K, T> Streamlet<KeyValue<KeyedWindow<K>, T>> reduceByKeyAndWindow(
+//      SerializableFunction<R, K> keyExtractor, WindowConfig<R> windowCfg,
+//      T identity, SerializableBiFunction<T, R, ? extends T> reduceFn) {
+//    GeneralReduceByKeyAndWindowStreamlet<K, R, T> retval =
+//        new GeneralReduceByKeyAndWindowStreamlet<>(this, keyExtractor, windowCfg,
+//            identity, reduceFn);
+//    addChild(retval);
+//    return retval;
+//  }
+
+  public <T> ReduceStreamlet<R, T> reduce() {
+    return new ReduceStreamletImpl<>(this);
   }
+
 
   /**
    * Returns a new Streamlet thats the union of this and the ‘other’ streamlet. Essentially
