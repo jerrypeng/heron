@@ -8,11 +8,3 @@ genrule(
     outs = ["heron-nomad"],
     cmd = "mv $< $@",
 )
-    
-#filegroup(
-#   name = "nomad",
-#    srcs = select({
-#        "//tools/platform:darwin": ["@nomad_mac//file"],
-#        "//conditions:default": ["@nomad_linux//file"],
-#    }),
-#)
