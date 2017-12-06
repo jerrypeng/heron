@@ -703,3 +703,16 @@ new_http_archive(
     ])
 )
 # end pex repos
+
+# for nomad repo
+new_http_archive(
+    name = "nomad_mac",
+    urls = ["https://releases.hashicorp.com/nomad/0.7.0/nomad_0.7.0_darwin_amd64.zip"],
+    build_file = "third_party/nomad/nomad.BUILD",
+)
+
+new_http_archive(
+    name = "nomad_linux",
+    urls = ["https://releases.hashicorp.com/nomad/0.7.0/nomad_0.7.0_linux_amd64.zip"],
+    build_file = "third_party/nomad/nomad.BUILD",
+)
