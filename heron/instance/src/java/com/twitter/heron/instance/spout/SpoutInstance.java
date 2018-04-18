@@ -147,11 +147,18 @@ public class SpoutInstance implements IInstance {
       throw new RuntimeException("Could not save a non-stateful topology's state");
     }
 
-    if (spout instanceof IStatefulComponent) {
-      ((IStatefulComponent) spout).preSave(checkpointId);
-    }
+    // need to synchronize with other OutgoingTupleCollection operations
+    // so that topology emit, ack, fail are thread safe
+    collector.lock.lock();
+    try {
+      if (spout instanceof IStatefulComponent) {
+        ((IStatefulComponent) spout).preSave(checkpointId);
+      }
 
-    collector.sendOutState(instanceState, checkpointId);
+      collector.sendOutState(instanceState, checkpointId);
+    } finally {
+      collector.lock.unlock();
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -306,8 +313,10 @@ public class SpoutInstance implements IInstance {
     int maxSpoutPending = TypeUtils.getInteger(config.get(Config.TOPOLOGY_MAX_SPOUT_PENDING));
 
     long totalTuplesEmitted = collector.getTotalTuplesEmitted();
+    long totalBytesEmitted = collector.getTotalBytesEmitted();
 
     Duration instanceEmitBatchTime = systemConfig.getInstanceEmitBatchTime();
+    ByteAmount instanceEmitBatchSize = systemConfig.getInstanceEmitBatchSize();
 
     long startOfCycle = System.nanoTime();
 
@@ -326,6 +335,7 @@ public class SpoutInstance implements IInstance {
       spoutMetrics.nextTuple(latency);
 
       long newTotalTuplesEmitted = collector.getTotalTuplesEmitted();
+      long newTotalBytesEmitted = collector.getTotalBytesEmitted();
       if (newTotalTuplesEmitted == totalTuplesEmitted) {
         // No tuples to emit....
         break;
@@ -335,6 +345,10 @@ public class SpoutInstance implements IInstance {
 
       // To avoid spending too much time
       if (currentTime - startOfCycle - instanceEmitBatchTime.toNanos() > 0) {
+        break;
+      }
+      if (!ByteAmount.fromBytes(newTotalBytesEmitted - totalBytesEmitted)
+          .lessThan(instanceEmitBatchSize)) {
         break;
       }
     }

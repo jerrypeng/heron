@@ -17,6 +17,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
@@ -38,7 +39,9 @@ public class AbstractOutputCollector {
   protected final ComponentMetrics metrics;
   protected final boolean ackEnabled;
   private long totalTuplesEmitted;
+  private long totalBytesEmitted;
   private PhysicalPlanHelper helper;
+  public final ReentrantLock lock = new ReentrantLock();
 
   /**
    * The SuppressWarnings is only until TOPOLOGY_ENABLE_ACKING exists.
@@ -52,26 +55,27 @@ public class AbstractOutputCollector {
     this.serializer = serializer;
     this.metrics = metrics;
     this.totalTuplesEmitted = 0;
+    this.totalBytesEmitted = 0;
     this.helper = helper;
 
     Map<String, Object> config = helper.getTopologyContext().getTopologyConfig();
     if (config.containsKey(Config.TOPOLOGY_RELIABILITY_MODE)
         && config.get(Config.TOPOLOGY_RELIABILITY_MODE) != null) {
       this.ackEnabled =
-     Config.TopologyReliabilityMode.valueOf(config.get(Config.TOPOLOGY_RELIABILITY_MODE).toString())
-                        == Config.TopologyReliabilityMode.ATLEAST_ONCE;
+          Config.TopologyReliabilityMode.valueOf(config.get(Config.TOPOLOGY_RELIABILITY_MODE).toString())
+              == Config.TopologyReliabilityMode.ATLEAST_ONCE;
     } else {
       // This is strictly for backwards compatiblity
       if (config.containsKey(Config.TOPOLOGY_ENABLE_ACKING)
           && config.get(Config.TOPOLOGY_ENABLE_ACKING) != null) {
         this.ackEnabled =
-              Boolean.parseBoolean(config.get(Config.TOPOLOGY_ENABLE_ACKING).toString());
+            Boolean.parseBoolean(config.get(Config.TOPOLOGY_ENABLE_ACKING).toString());
       } else {
         this.ackEnabled = false;
       }
     }
 
-    this.outputter = new OutgoingTupleCollection(helper, streamOutQueue);
+    this.outputter = new OutgoingTupleCollection(helper, streamOutQueue, lock);
   }
 
   public void updatePhysicalPlanHelper(PhysicalPlanHelper physicalPlanHelper) {
@@ -115,6 +119,10 @@ public class AbstractOutputCollector {
 
   public long getTotalTuplesEmitted() {
     return totalTuplesEmitted;
+  }
+
+  public long getTotalBytesEmitted() {
+    return totalBytesEmitted;
   }
 
   protected HeronTuples.HeronDataTuple.Builder initTupleBuilder(String streamId,
@@ -168,6 +176,7 @@ public class AbstractOutputCollector {
     // submit to outputter
     outputter.addDataTuple(streamId, bldr, tupleSizeInBytes);
     totalTuplesEmitted++;
+    totalBytesEmitted += tupleSizeInBytes;
 
     // Update metrics
     metrics.emittedTuple(streamId);
