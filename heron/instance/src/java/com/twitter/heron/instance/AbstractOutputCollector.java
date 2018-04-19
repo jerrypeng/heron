@@ -62,7 +62,8 @@ public class AbstractOutputCollector {
     if (config.containsKey(Config.TOPOLOGY_RELIABILITY_MODE)
         && config.get(Config.TOPOLOGY_RELIABILITY_MODE) != null) {
       this.ackEnabled =
-          Config.TopologyReliabilityMode.valueOf(config.get(Config.TOPOLOGY_RELIABILITY_MODE).toString())
+          Config.TopologyReliabilityMode.valueOf(
+              config.get(Config.TOPOLOGY_RELIABILITY_MODE).toString())
               == Config.TopologyReliabilityMode.ATLEAST_ONCE;
     } else {
       // This is strictly for backwards compatiblity
